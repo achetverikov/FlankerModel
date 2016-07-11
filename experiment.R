@@ -72,8 +72,9 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
       respN[z]<-n_first
       
       # attention modulation
-      extAC_next <- gaMMa * extAC_next + ((1 - gaMMa)*(alpha * prev_energy + beta))
       prev_energy <- ifelse(z>1, sum(energies[z, ],na.rm=T),0)
+      extAC_next <- gaMMa * extAC_next + ((1 - gaMMa)*(alpha * prev_energy + beta))
+      
       
       attention_c_act[z] <- extAC_next
       response_conflict[z] <- prev_energy
