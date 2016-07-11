@@ -44,7 +44,7 @@ n_corr <- NA
 
 stimulus_layer <- matrix(data = 0, ncol = stimuli_resp[!duplicated(paste(flanker_resp, flanker)),.N]*3, nrow = stop_cycle)
 
-colnames(stimulus_layer) <- rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker], 3)
+colnames(stimulus_layer) <- apply(expand.grid(c('H','S'),c('L','C','R')), 1, paste, collapse=".")# rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker], 3)
 stimulus_layer_resp <- as.character(rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker_resp], 3))
 
 response_layer <- matrix(0, ncol = stimuli_resp[,lengthu(target_resp)], nrow = stop_cycle)
@@ -65,6 +65,9 @@ attention_act <- attention_layer
 response_input <- response_layer
 stimulus_input <- stimulus_layer
 attention_input <- attention_layer
+
+attention_to_attention_inputs <- attention_layer
+stimulus_to_attention_inputs <- attention_layer
 
 # d_act's
 response_d_act <- response_layer

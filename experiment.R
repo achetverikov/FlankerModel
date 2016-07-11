@@ -2,7 +2,7 @@
 # Experiment
 #
 
-setwd("C:/Users/spaladin/OneDrive/Models/Flanker Model/3 response flanker")
+#setwd("C:/Users/spaladin/OneDrive/Models/Flanker Model/3 response flanker")
 # setwd("C:/Users/st001825/OneDrive/Models/Flanker Model/3 response flanker")
 # setwd("D:/OneDrive/Flanker Model/3 response flanker")
 library(parallel)
@@ -15,7 +15,7 @@ library(gridExtra)
 cl <- makeCluster(4)
 registerDoParallel(cl)
 
-n_trials_in_block = 25
+n_trials_in_block = 500
 n_blocks = 4
 n_trials = n_blocks*n_trials_in_block
 
@@ -41,7 +41,7 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
   stimuli_sequence <- stimuli_resp[sample(nrow(stimuli_resp), n_trials, replace = T)]
   stimuli_sequence[,block:=rep(1:n_blocks, each=n_trials_in_block)]
   
-  sim_res_by_block<-foreach (cur_block = 1:n_blocks, .combine=function (a, b) list(rbind(a[[1]], b[[1]]),rbind(a[[2]], b[[2]])),.packages=c('data.table','apastats'), .export=c('stimuli_resp')) %do%{
+  sim_res_by_block<-foreach (cur_block = 1:n_blocks, .combine=function (a, b) list(rbind(a[[1]], b[[1]]),rbind(a[[2]], b[[2]])),.packages=c('data.table','apastats'), .export=c('stimuli_resp')) %dopar%{
     source('stimulus_code_function.R', local = T)
     responses <- c()
     RTs <- numeric(n_trials_in_block)
@@ -51,20 +51,19 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
     energies[1:n_trials_in_block,1:54] <- 0
     
     attention_c_act <- numeric(n_trials_in_block)
-    response_conflict <- numeric(n_trials_in_block)
+    total_energy <- numeric(n_trials_in_block)
     
-    prev_energy = 0
-    extAC_next = 0
     cur_stimuli_sequence<-stimuli_sequence[block==cur_block]
     # run experiment
     for (z in 1:n_trials_in_block){
       #setTxtProgressBar(pb,z)
       stimulus <- cur_stimuli_sequence[z,stimuli]
       
-      source('first_ac_ac.R',local = T)
+      source('first.R',local = T)
       #print(stimulus_layer)
       C<-0.18#criterion
-      source('cycle_ac_3.R',local = T)
+      
+      source('cycle.R',local = T)
       responses[z] <- first_response
       RTs[z] <- RT_first
       error_corrections[z] <- n_corr
@@ -72,24 +71,25 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
       respN[z]<-n_first
       
       # attention modulation
-      prev_energy <- ifelse(z>1, sum(energies[z, ],na.rm=T),0)
-      extAC_next <- gaMMa * extAC_next + ((1 - gaMMa)*(alpha * prev_energy + beta))
+      total_energy[z] <- sum(energies[z, ])
+      attention_c_act[z+1] <- gaMMa * attention_c_act[z] + ((1 - gaMMa)*(alpha * total_energy[z] + beta))
       
       
-      attention_c_act[z] <- extAC_next
-      response_conflict[z] <- prev_energy
+      
       
     }
     cur_stimuli_sequence[,response:=responses]
     cur_stimuli_sequence[,accuracy:=as.numeric(target_resp == response)]
     cur_stimuli_sequence[,respN:=respN] 
     cur_stimuli_sequence[,RTs:=RTs] 
+    cur_stimuli_sequence[,total_energy:=total_energy]
+    cur_stimuli_sequence[,attention_c_act:=attention_c_act[1:n_trials_in_block]]
     cur_stimuli_sequence[,error_corrections:=error_corrections] 
     list(cur_stimuli_sequence, e=energies)
   }
   stimuli_sequence <- sim_res_by_block[[1]]
   energies <- sim_res_by_block[[2]]
-  stimuli_sequence[,trialN:=(block-1)*n_trials_in_block+.I]
+  stimuli_sequence[,trialN:=.I]
   
   list(C, stimuli_sequence, energies)
 }
