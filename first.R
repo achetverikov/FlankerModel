@@ -37,6 +37,7 @@ stop_input <- stop_cycle # by default, input continues until the end of the tria
 n_first <- NA
 first_response <- NA
 n_corr <- NA
+RT_first<-NA
 
 #network layers
 
@@ -44,7 +45,7 @@ n_corr <- NA
 
 stimulus_layer <- matrix(data = 0, ncol = stimuli_resp[!duplicated(paste(flanker_resp, flanker)),.N]*3, nrow = stop_cycle)
 
-colnames(stimulus_layer) <- apply(expand.grid(c('H','S'),c('L','C','R')), 1, paste, collapse=".")# rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker], 3)
+colnames(stimulus_layer) <- apply(expand.grid(unique(stimuli_resp$flanker),c('L','C','R')), 1, paste, collapse=".")# rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker], 3)
 stimulus_layer_resp <- as.character(rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker_resp], 3))
 
 response_layer <- matrix(0, ncol = stimuli_resp[,lengthu(target_resp)], nrow = stop_cycle)

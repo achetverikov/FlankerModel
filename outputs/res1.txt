@@ -1,0 +1,4 @@
+     congruency  acc RTs respN    N
+1:   compatible 0.93 422    14 1069
+2: incompatible 0.77 449    16 4449
+3:      neutral 0.91 452    16 4482
