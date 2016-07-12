@@ -30,9 +30,9 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
   stimuli_resp[,target_resp:=car::recode(target, "c('P','R')=1;c('M','V')=2;c('W','X')=3;c('&', '#', '%', '$')=0")]
   # 
   
-  stimuli_resp<-data.table(target=c('H', 'S'))
-  stimuli_resp[,target_resp:=car::recode(target, "c('H')=1;c('S')=2")]
-  # # 
+  # stimuli_resp<-data.table(target=c('H', 'S'))
+  # stimuli_resp[,target_resp:=car::recode(target, "c('H')=1;c('S')=2")]
+  # # # 
   stimuli_resp<-setkey(stimuli_resp[,c(k=1,.SD)],k)[stimuli_resp[,c(k=1,.SD)],allow.cartesian=TRUE][,k:=NULL] #pairwise combinations
   names(stimuli_resp)[3:4]<-c('flanker','flanker_resp')
   stimuli_resp<-stimuli_resp[target_resp!=0&!(flanker_resp==target_resp&target!=flanker)]
@@ -51,6 +51,7 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
     RTs <- numeric(n_trials_in_block)
     respN <- numeric(n_trials_in_block)
     error_corrections <- numeric(n_trials_in_block)
+    error_corrections_rts <- numeric(n_trials_in_block)
     energies <- matrix(ncol = 54, nrow = n_trials_in_block)
     energies[1:n_trials_in_block,1:54] <- 0
     
@@ -71,6 +72,7 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
       responses[z] <- first_response
       RTs[z] <- RT_first
       error_corrections[z] <- n_corr
+      error_corrections_rts[z] <- RT_ecr
       energies[z,] <- E
       respN[z]<-n_first
       
@@ -89,6 +91,7 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
     cur_stimuli_sequence[,total_energy:=total_energy]
     cur_stimuli_sequence[,attention_c_act:=attention_c_act[1:n_trials_in_block]]
     cur_stimuli_sequence[,error_corrections:=error_corrections] 
+    cur_stimuli_sequence[,error_corrections_rts:=error_corrections_rts] 
     list(cur_stimuli_sequence, e=energies)
   }
   stimuli_sequence <- sim_res_by_block[[1]]
@@ -101,4 +104,4 @@ sim_data<-foreach (criterion=seq(0.18, 0.18, 0.2), .packages=c('data.table')) %d
 
 ############ RUN CODE UNTIL HERE TO SIMULATE n_trials TRIALS ############
 
-#save('sim_data',file = 'outputs/2_flanker_10000_trials.RData')
+#save('sim_data',file = 'outputs/3_flanker_10000_trials.RData')

@@ -38,7 +38,7 @@ n_first <- NA
 first_response <- NA
 n_corr <- NA
 RT_first<-NA
-
+RT_ecr<-NA
 #network layers
 
   ### Net inputs were initialized to zero at the start of each trial
