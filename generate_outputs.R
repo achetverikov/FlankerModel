@@ -9,7 +9,8 @@ for (i in list.files('outputs','.RData',full.names = T)){
   load(i)
   prefix <- file_path_sans_ext(basename(i))
   opts_chunk$set(fig.path=paste0('outputs/figures/',prefix))
-  render('summaries_and_plots.Rmd',output_file = paste0('outputs/',prefix,'.html'))
+  render('summaries_and_plots.Rmd',output_dir	= 'outputs',output_file=prefix,output_format = 'html_document',output_options	
+=list(keep_md	=T))
 
   
   print(prefix)
