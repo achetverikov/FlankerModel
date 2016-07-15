@@ -17,7 +17,7 @@ for(n in 2:stop_cycle){
 
 #################### external input #######################
 
-  #cycles 2-4 are preparatory - ext. input only for R
+  #cycles 2-4 are preparatory - ext. input only for R, attention not activated
 
   if (n<5){
     extR <- 0.03
@@ -135,13 +135,15 @@ for(n in 2:stop_cycle){
 
   # Conflict
 
-  ## A product of unit activations was set to 0 whenever one of the activations was negative.
+  ## "A product of unit activations was set to 0 whenever one of the activations was negative".
   
-  response_act_for_e<-response_act[n,]
-  response_act_for_e[response_act_for_e<0]<-0
-  E_mat <- response_act_for_e%*%t(response_act_for_e) * (-1) * wR
-  diag(E_mat) <- 0
-  E[n] <- sum(E_mat)
+  #if (n>5){
+    response_act_for_e<-response_act[n,]
+    response_act_for_e[response_act_for_e<0]<-0
+    E_mat <- response_act_for_e%*%t(response_act_for_e) * (-1) * wR
+    diag(E_mat) <- 0
+    E[n] <- sum(E_mat)
+  #}
   #E[n] <- ifelse(E[n] < 0, 0, E[n])
 
 
