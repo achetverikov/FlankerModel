@@ -1,16 +1,22 @@
-```{r, setup, echo=F}
-library(tables)
-source('first.R',local = TRUE)
+```{r, setup, echo=F, results='hide', cache=F, error=T}
+library(ggplot2)
+library(data.table)
+
+opts_chunk$set(results='hide',highlight=F, cache=F,error = F, tidy=F, echo=F, message=F, warning=F, comment=NA, external=F,split=F, dpi=320, dev='png', dev.args = list(type='cairo'))
+opts_chunk$set(fig.path=paste0('outputs/figures/',prefix))
+
+default_colors <-c('#3498db','#e74c3c','#009f06','#AA2255')
+scale_colour_discrete <- function(...) scale_color_manual(values=default_colors, ...)
+
+load(fname)
+
+#source('first.R',local = TRUE)
 
 # delay & threshold for conflict monitoring post-response conflict accumulator for error detection
 CM_Delay = 6
 CM_Threshold = .005
 
-default_colors <-c('#3498db','#e74c3c','#009f06','#AA2255')
-scale_colour_discrete <- function(...) scale_color_manual(values=default_colors, ...)
-scale_shape_discrete <- function(...) scale_shape_ac(...)
-
-sim_data[[1]][[2]]<-sim_data[[1]][[2]][,c('congruency','accuracyf'):=list(factor(congruency),factor(accuracy, labels=c('Errors','Correct')))]
+sim_data[[1]][[2]]<-sim_data[[1]][[2]][,c('congruency','accuracyf'):=list(droplevels(factor(congruency, levels=c('compatible','neutral','incompatible'), labels=c('Compatible','Neutral','Incompatible'))),factor(accuracy, labels=c('Errors','Correct')))]
 
 dt_by_trial<-sim_data[[1]][[2]]
 dt_by_trial[,ecr:=as.numeric(!is.na(error_corrections))]
@@ -20,11 +26,11 @@ energies_dt<-data.table(melt(sim_data[[1]][[3]]))
 setnames(energies_dt,old=c('Var1', 'Var2' ,'value'),new= c('trialN','cycleN','energy'))
 setorder(energies_dt,trialN,cycleN)
 
-energies_dt<-merge(stimuli_sequence, energies_dt, by='trialN')
+energies_dt<-merge(dt_by_trial, energies_dt, by='trialN')
 setkeyv(energies_dt, c('trialN','cycleN'))
 
 energies_dt[,resp_lockedN:=cycleN-respN]
-energies_dt[resp_lockedN>CM_Delay&cumsum(energy)>CM_Threshold,list(respN,cycleN,cumsum(energy) ),by=trialN]
+
 cm_error_detections<-energies_dt[resp_lockedN>CM_Delay,list(respN,cycleN,cum_energy=cumsum(energy) ),by=trialN][cum_energy>CM_Threshold,list(cm_error_detectionN=cycleN[1], cm_error_detection_energy=cum_energy[1]*1000),by=trialN]
 dt_by_trial<-merge(dt_by_trial,cm_error_detections,by='trialN', all.x=T)
 dt_by_trial[, cm_esr:=as.numeric(!is.na(cm_error_detectionN))]
@@ -33,18 +39,24 @@ dt_by_trial[, cm_esr:=as.numeric(!is.na(cm_error_detectionN))]
 ### Descriptives
 ```{r, results='asis'}
 library(pander)
+library(tables)
+library(apastats)
 panderOptions('round',2)
 panderOptions('keep.trailing.zeros',T)
 panderOptions('table.split.table',Inf)
 panderOptions('table.split.cells',20)
-pander(tabular(Heading('Congruency')*congruency + 1 ~ (Heading('Accuracy')*accuracy*Format(digits=2)+(Heading()*accuracyf + 1) *(Heading('RT')*RTs+Heading('RM ESR')*ecr*Format(f.round())+Heading('CM ESR')*cm_esr*Format(digits=2)))*Heading()*mymean, data = dt_by_trial))
+pander(tabular(Heading('Congruence')*congruency + 1 ~ (Heading('Accuracy')*accuracy*Format(digits=2)+(Heading()*accuracyf + 1) *(Heading('RT')*RTs+Heading('RM ESR')*ecr*Format(f.round())+Heading('CM ESR')*cm_esr*Format(f.round())))*Heading()*mymean+1, data = dt_by_trial))
 ```
 
-# Energies
+### Energies
 
-conflict comparisons in correct and erroneous trials.
 
-```{r}
+```{r, fig.width=7 ,fig.height=5}
+library(ggthemes)
+library(grid)
+library(gridExtra)
+theme_set(theme_tufte(base_size = 12, base_family = "sans")+theme(axis.line=element_line(),axis.line.x=element_line(),axis.line.y=element_line(),panel.grid=element_line(colour = 'darkgray',size = I(4)),legend.title=element_text(size=rel(1)), strip.text=element_text(size=rel(1)), axis.text=element_text(size=rel(1)), axis.title=element_text(size=rel(1)), legend.position	='right', plot.title=element_text(size=rel(1)), text=element_text(size=12), legend.text=element_text(size=rel(1))))
+
 grid.draw.np<-function (x){
   grid.newpage()
   grid.draw(x)
@@ -74,10 +86,24 @@ for (i in 1:length(sim_data)){
   # energies_dt[,acc:=factor(rep(accuracy, each=54))]
   # energies_dt[,congr:=relevel(factor(rep(congruency, each=54)), ref='incompatible')]
   
-  p1 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(resp_lockedN,congruency,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1))+theme_minimal() + ggtitle('R-locked')+scale_x_continuous(breaks=seq(-50,50,by=25))
-  p2 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(cycleN,congruency,accuracyf)]), x=cycleN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1))+theme_minimal()+scale_x_continuous(breaks=seq(0,50,by=10)) + ggtitle('S-locked')
-  p3 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(resp_lockedN,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf,  geom='line', size=I(1))+theme_minimal()+scale_x_continuous(breaks=seq(-50,50,by=25)) + ggtitle('R-locked')
-  p4 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(cycleN,accuracyf)]), x=cycleN,y=energy, linetype=accuracyf,  geom='line', size=I(1))+scale_color_grey()+theme_minimal()+scale_x_continuous(breaks=seq(0,50,by=10)) + ggtitle('S-locked')
+
+  right_plots <- theme(axis.text.y=element_blank(), axis.title.y=element_blank())
+  
+  yscale<-function() scale_y_continuous(lim=c(0,0.035), breaks=seq(0,.03,.01))
+  
+  top_plots <- theme(axis.text.x=element_blank())
+  
+  all_plots_labs<-labs(x=NULL, y='Conflict', color='Congruence', linetype='Accuracy')
+  
+
+  
+  p1 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(resp_lockedN,congruency,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1))+ ggtitle('Response-locked')+scale_x_continuous(breaks=seq(-50,50,by=25))+top_plots+yscale()+all_plots_labs
+  
+  p2 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(cycleN,congruency,accuracyf)]), x=cycleN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1)) + ggtitle('Stimulus-locked') + right_plots + top_plots+yscale()+scale_x_continuous(breaks=seq(0,50,by=10))+all_plots_labs
+  
+  p3 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(resp_lockedN,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf,  geom='line', size=I(1))+scale_x_continuous(breaks=seq(-50,50,by=25))+yscale()+all_plots_labs
+  
+  p4 <- qplot(data=data.frame(energies_dt[!is.na(respN),list(energy=mymean(energy)), by=list(cycleN,accuracyf)]), x=cycleN,y=energy, linetype=accuracyf,  geom='line', size=I(1))+right_plots+yscale()+scale_x_continuous(breaks=seq(0,50,by=10))+all_plots_labs
   
   assign(paste('plot', i, '1', sep="_"), p1)
   assign(paste('plot', i, '2', sep="_"), p2)
