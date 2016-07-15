@@ -1,17 +1,28 @@
 library(tools)
 library(knitr)
 library(rmarkdown)
+library(apastats)
+library(parallel)
+library(Cairo)
+library(doParallel)
+library(data.table)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(sampling)
+library(tables)
 
-fig_width=7
-opts_chunk$set(results='hide',highlight=F, cache=F, tidy=F, echo=F, message=F, warning=F, comment=NA, external=F,split=F, fig.width=fig_width, fig.height=fig_width, dpi=320, dev='png', dev.args = list(type='cairo'))
+rm(list=ls())
 
+#for (ext in c('html','word')){
 for (i in list.files('outputs','.RData',full.names = T)){
-  load(i)
+  print(i)
   prefix <- file_path_sans_ext(basename(i))
   opts_chunk$set(fig.path=paste0('outputs/figures/',prefix))
-  render('summaries_and_plots.Rmd',output_dir	= 'outputs',output_file=prefix,output_format = 'html_document',output_options	
-=list(keep_md	=T))
-
+  env = new.env()
+  load(i, env)
+  #assign('sim_data', sim_data, envir = env)
+  render('summaries_and_plots.Rmd',output_dir	= 'outputs', output_file = paste0('outputs/',prefix,c('.html','.docx')), output_format=c('html_document', 'word_document'),output_options = list(keep_md	=T), envir=env, quiet=T)
   
-  print(prefix)
 }
+#}

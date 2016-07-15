@@ -49,7 +49,8 @@ colnames(stimulus_layer) <- apply(expand.grid(unique(stimuli_resp$flanker),c('L'
 stimulus_layer_resp <- as.character(rep(stimuli_resp[!duplicated(paste(flanker_resp, flanker)),flanker_resp], 3))
 
 response_layer <- matrix(0, ncol = stimuli_resp[,lengthu(target_resp)], nrow = stop_cycle)
-colnames(response_layer) <-  stimuli_resp[,unique(target_resp)]
+#colnames(response_layer) <-  stimuli_resp[,unique(target_resp)]
+colnames(response_layer) <-  unique(stimulus_layer_resp[stimulus_layer_resp!=0])
 
 attention_layer <- matrix(0, ncol = 3, nrow = stop_cycle)
 colnames(attention_layer) <- c('L', 'C', 'R')
