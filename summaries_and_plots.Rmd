@@ -117,3 +117,16 @@ grid.draw.np(plot_1_c)
 
 #ggsave('outputs/2_flanker_sim.png', plot_1_c, dpi=320, width=9, height=7,limitsize = F, type = "cairo-png")
 ```
+
+
+```{r}
+dt_by_trial[, trial_in_block:=1:.N,by=block]
+dt_by_trial[, next_attention_ac_act:=shift(attention_c_act,type = 'lead'),by=block]
+
+plot.pointrange(dt_by_trial, aes(x=congruency, y=next_attention_ac_act))+ggtitle('Post-conflict adaptation of attention')+labs(x=NULL, y='Attention to central item on trial N+1')
+
+qplot(data=data.frame(energies_dt[!is.na(respN)&accuracy==0&resp_lockedN>CM_Delay,][order(trialN, cycleN)][,list(resp_lockedN,energy=cumsum(energy)-energy[1]), by=list(trialN,congruency,accuracyf)][,list(energy=mymean(energy)), by=list(resp_lockedN,congruency,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1))+ ggtitle(sprintf('Post-response cumulative conflict (delay = %g)',CM_Delay))+all_plots_labs
+
+qplot(data=data.frame(energies_dt[!is.na(respN)&accuracy==0&resp_lockedN>=0,][order(trialN, cycleN)][,list(resp_lockedN,energy=cumsum(energy)), by=list(trialN,congruency,accuracyf)][,list(energy=mymean(energy)), by=list(resp_lockedN,congruency,accuracyf)]), x=resp_lockedN,y=energy, linetype=accuracyf, color=congruency, geom='line', size=I(1))+ ggtitle(sprintf('Post-response cumulative conflict (delay = 0)',CM_Delay))+all_plots_labs
+
+```
