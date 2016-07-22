@@ -1,4 +1,6 @@
 
+# Function for translating human readable stimulus (e.g. HSH) to units activation vector (e.g. 011001)
+
 stimulus_code <- function(stimulus){
   n_units_in_layer<-ncol(stimulus_layer)
   flanker_letters <- unlist(strsplit(stimulus, ''))

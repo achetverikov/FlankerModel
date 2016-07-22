@@ -2,12 +2,15 @@
 library(ggplot2)
 library(data.table)
 
+# some output parameters
+
 opts_chunk$set(results='hide',highlight=F, cache=F,error = F, tidy=F, echo=F, message=F, warning=F, comment=NA, external=F,split=F, dpi=320, dev='png', dev.args = list(type='cairo'))
 opts_chunk$set(fig.path=paste0('outputs/figures/',prefix))
 
 default_colors <-c('#3498db','#e74c3c','#009f06','#AA2255')
 scale_colour_discrete <- function(...) scale_color_manual(values=default_colors, ...)
 
+# load the data
 load(fname)
 
 #source('first.R',local = TRUE)
@@ -15,6 +18,8 @@ load(fname)
 # delay & threshold for conflict monitoring post-response conflict accumulator for error detection
 CM_Delay = 6
 CM_Threshold = .005
+
+# make congruency & accuracy factors, drop unused levels
 
 sim_data[[1]][[2]]<-sim_data[[1]][[2]][,c('congruency','accuracyf'):=list(droplevels(factor(congruency, levels=c('compatible','neutral','incompatible'), labels=c('Compatible','Neutral','Incompatible'))),factor(accuracy, labels=c('Errors','Correct')))]
 
@@ -32,6 +37,8 @@ setkeyv(energies_dt, c('trialN','cycleN'))
 energies_dt[,resp_lockedN:=cycleN-respN]
 
 cm_error_detections<-energies_dt[resp_lockedN>CM_Delay,list(respN,cycleN,cum_energy=cumsum(energy) ),by=trialN][cum_energy>CM_Threshold,list(cm_error_detectionN=cycleN[1], cm_error_detection_energy=cum_energy[1]*1000),by=trialN]
+
+# merge data & CM error detection responses
 dt_by_trial<-merge(dt_by_trial,cm_error_detections,by='trialN', all.x=T)
 dt_by_trial[, cm_esr:=as.numeric(!is.na(cm_error_detectionN))]
 ```
@@ -114,8 +121,6 @@ for (i in 1:length(sim_data)){
 }
 
 grid.draw.np(plot_1_c)
-
-#ggsave('outputs/2_flanker_sim.png', plot_1_c, dpi=320, width=9, height=7,limitsize = F, type = "cairo-png")
 ```
 
 

@@ -1,8 +1,8 @@
 #
 # cycle
 #
-# this version is based on cycle_ac.R
 
+# helper functions 
 sum_pos<-function (x,...){
   sum(x[x>0],...)
 }
@@ -13,20 +13,22 @@ pos_only<-function (x){
 
 
 
-for(n in 2:stop_cycle){
+for(n in 2:stop_cycle){ # n cycles in one trial
 
 #################### external input #######################
 
   #cycles 2-4 are preparatory - ext. input only for R, attention not activated
 
   if (n<5){
-    extR <- 0.03
+    extR <- 0.03 # external input to response layer in preparatoty cycles
     extS <- 0
     extA[n,] <- c(0,0,0)
+    # Uncomment the following two lines to make Flanker task Module closer to that of Cohen, Servan-Schreiber & McClelland (1992)
     # extA[n,'C'] <- attention_c_act[z]
     # extA[n,'C'] <- ifelse(extA[n,'C'] > 3, 3, ifelse(extA[n,'C'] < 1, 1, extA[n,'C']))
   }
   else if (n>=5 & n < stop_input){
+    # external inputs to all units
     extR <- 0.03
     extS <- 0.15
 
@@ -42,43 +44,43 @@ for(n in 2:stop_cycle){
   }
 
 
-################### net input ##################################
+################### net input calculation ##################################
   ### stimulus layer:
 
   for (i in 1:ns){
-    # stimulus_without_i <- stimulus
-    # stimulus_without_i[i] <- 0
+    # compute activation to i'th stimulus unit from all other stimulus units
     stimulus_layer_units <- sum(pos_only(stimulus_act[n-1, -i]) *  wS * sc_i)
 
+    # compute activation to i'th stimulus unit from attention units
     attention_layer_unit <- sum(pos_only(attention_act[n-1, ifelse(i <= ns/3, 1, ifelse(i <= (ns*2/3), 2, 3))]) *  wSA * sc_e)
 
+    # summarize all sourses of stimulus unit inputs
     stimulus_input[n,i] <- stimulus_code(stimulus)[i]*extS*estr + stimulus_layer_units + attention_layer_unit + rnorm(1, mean = 0, sd = s_noise)
   }
 
   ### attention layer:
   for (i in c('L','C','R')){
+
+    # compute activation to i'th attention unit from all other attention units
     attention_to_attention_inputs[n,i]<-sum(pos_only(attention_act[n-1, names(attention_act)!=i]) *  wA * sc_i)
+
+    # compute activation to i'th attention unit from stimulus units
     stimulus_to_attention_inputs[n,i]<-sum(pos_only(stimulus_act[n-1,  grepl(i, colnames(stimulus_act))]) *  wSA * sc_e)
+
+    # summarize all sourses of attention unit inputs
     attention_input[n,i] <-extA[n,i]*estr +attention_to_attention_inputs[n,i]+stimulus_to_attention_inputs[n,i] + rnorm(1, mean = 0, sd = s_noise)
   }
-  # attention_layer_unitsC <- sum(pos_only(attention_act[n-1, -2]) *  wA * sc_i)
-  # attention_layer_unitsL <- sum(pos_only(attention_act[n-1, -1]) *  wA * sc_i)
-  # attention_layer_unitsR <- sum(pos_only(attention_act[n-1, -3]) *  wA * sc_i)
-  # 
-  # stimulus_layer_unitsC <- sum(pos_only(stimulus_act[n-1, ((ns/3)+1): (2*(ns/3))]) *  wSA * sc_e)
-  # stimulus_layer_unitsL <- sum(pos_only(stimulus_act[n-1, 1:(ns/3)]) *  wSA * sc_e)
-  # stimulus_layer_unitsR <- sum(pos_only(stimulus_act[n-1, ((2*(ns/3))+1):ns]) *  wSA * sc_e)
-  # 
-  # attention_input[n,'C'] <- extA[n,'C']*estr + attention_layer_unitsC + stimulus_layer_unitsC + rnorm(1, mean = 0, sd = s_noise)
-  # attention_input[n,'L'] <- extA[n,'L']*estr + attention_layer_unitsL + stimulus_layer_unitsL + rnorm(1, mean = 0, sd = s_noise)
-  # attention_input[n,'R'] <- extA[n,'R']*estr + attention_layer_unitsR + stimulus_layer_unitsR + rnorm(1, mean = 0, sd = s_noise)
-
+  
   ### response layer:
-
   for (k in 1:nr){
+
+    # compute activation to k'th response unit from all other response units
     response_layer_units <- sum(pos_only(response_act[n-1, -k]) *  wR * sc_i)
+
+    # compute activation to k'th response unit from stimulus units
     stimulus_layer_units <- sum(pos_only(stimulus_act[n-1, as.character(k) == stimulus_layer_resp]) *  wSR * sc_e)
 
+    # summarize all sourses of stimulus unit inputs
     response_input[n,k] <- extR*estr + response_layer_units + stimulus_layer_units + rnorm(1, mean = 0, sd = s_noise)
   }
 
@@ -89,13 +91,16 @@ for(n in 2:stop_cycle){
 ####################### activation ##############################
 
   ### stimulus layer:
+
   for (i in 1:ns){
+    # computing change of unit activation
     if(stimulus_input[n,i] >= 0){
       stimulus_d_act[n,i] <- (act_max - stimulus_act[n-1,i])
     } else {
     	stimulus_d_act[n,i] <- (stimulus_act[n-1,i] - act_min)
     }
 
+    # updating unit activation
     stimulus_act[n,i] <- stimulus_act[n-1,i] + stimulus_d_act[n,i]*stimulus_input[n,i] - (stimulus_act[n-1, i] - act_rest)*decay
     if (stimulus_act[n,i]>act_max) stimulus_act[n,i] <- act_max
     if (stimulus_act[n,i]<act_min) stimulus_act[n,i] <- act_min
@@ -105,12 +110,14 @@ for(n in 2:stop_cycle){
   ### attention layer:
 
   for (i in 1:ncol(attention_input)){
+    # computing change of unit activation
     if(attention_input[n,i] >= 0){
       attention_d_act[n,i] <- (act_max - attention_act[n-1,i])
     } else {
 		attention_d_act[n,i] <- (attention_act[n-1,i] - act_min)
 	}
 
+    # updating unit activation
     attention_act[n,i] <- attention_act[n-1,i] + attention_d_act[n,i]*attention_input[n,i] - (attention_act[n-1, i] - act_rest)*decay
     if (attention_act[n,i]>act_max) attention_act[n,i] <- act_max
     if (attention_act[n,i]<act_min) attention_act[n,i] <- act_min
@@ -121,12 +128,14 @@ for(n in 2:stop_cycle){
     ### response layer:
 
   for (i in 1:ncol(response_layer)){
+    # computing change of unit activation
     if(response_input[n,i] >= 0){
       response_d_act[n,i] <- (act_max - response_act[n-1,i])
     } else {
     	response_d_act[n,i] <- (response_act[n-1,i] - act_min)
     }
 
+    # updating unit activation
     response_act[n,i] <- response_act[n-1,i] + response_d_act[n,i]*response_input[n,i] - (response_act[n-1, i] - act_rest)*decay
     if (response_act[n,i]>act_max) response_act[n,i] <- act_max
     if (response_act[n,i]<act_min) response_act[n,i] <- act_min
@@ -135,8 +144,9 @@ for(n in 2:stop_cycle){
 
   # Conflict
 
-  ## "A product of unit activations was set to 0 whenever one of the activations was negative".
-  
+  ## "A product of unit activations was set to 0 whenever one of the activations was negative" (Steinhauser et al., 2008)
+
+  #uncomment "if ..." to disable conflict monitoring on preparatory cycles
   #if (n>5){
     response_act_for_e<-response_act[n,]
     response_act_for_e[response_act_for_e<0]<-0
@@ -144,9 +154,6 @@ for(n in 2:stop_cycle){
     diag(E_mat) <- 0
     E[n] <- sum(E_mat)
   #}
-  #E[n] <- ifelse(E[n] < 0, 0, E[n])
-
-
 
   # response execution
 
@@ -158,20 +165,13 @@ for(n in 2:stop_cycle){
 
     stop_input <- round(n + rnorm(1, d_stop, s_stop))
   }
-#   In the model of Yeung et al. (2004), Tcycle
-#   and TND1 were set to 16 ms and 200 ms, respectively. In our
-#   study, these parameters were estimated from the data to obtain an optimal fit.
-
-  # response correction (ECR)
+    
+  # response correction (ECR) - occurs when any new response reachs the threshold after the first one
 
   if(!is.na(n_first) & n > n_first & any(response_act[n,colnames(response_act) != first_response] > C) & is.na(n_corr)){
     second_response <- colnames(response_act)[which(response_act[n,colnames(response_act) != first_response] == max(response_act[n,colnames(response_act) != first_response]))]
 
     n_corr <- n
-
     RT_ecr <- T_cycle * (n_corr - n_first) + T_nd2
-
   }
-
-
 }
